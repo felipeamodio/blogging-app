@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'bloggingapp'
+rootProject.name = 'blogging-app'
 
 dependencyResolutionManagement {
   versionCatalogs {

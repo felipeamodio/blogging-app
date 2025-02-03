@@ -1,4 +1,4 @@
-package com.bloggingapp
+package com.felipe.amodio.bloggingapp
 
 import android.app.Application
 import android.content.res.Configuration
