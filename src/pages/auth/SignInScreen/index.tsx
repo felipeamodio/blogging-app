@@ -73,7 +73,7 @@ export function SignInScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Logue com seu email e senha</Text>
+      <Text style={styles.title}>Bem-vindo(a) ao <Text style={{fontWeight: "bold", color: "#007AFF"}}>Blogging App</Text></Text>
 
       <Modal
         animationType="fade"
@@ -107,6 +107,7 @@ export function SignInScreen() {
       <TextInput
         style={styles.input}
         placeholder="Digite seu e-mail"
+        placeholderTextColor="#A9A9A9"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -115,6 +116,7 @@ export function SignInScreen() {
       <TextInput
         style={styles.input}
         placeholder="Digite sua senha"
+        placeholderTextColor="#A9A9A9"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -135,10 +137,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    backgroundColor: "#0d0f1f"
   },
   title: {
     fontSize: 20,
     marginBottom: 20,
+    color: "#FFFFFF"
   },
   input: {
     width: "100%",
@@ -148,6 +152,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700"
   },
   button: {
     width: "100%",
