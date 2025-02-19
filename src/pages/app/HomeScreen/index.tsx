@@ -1,15 +1,5 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Alert,
-  Button,
-  FlatList,
-  TextInput,
-  Modal,
-} from "react-native";
-import { deleteUser, getAuth, signOut } from "firebase/auth";
+import { TouchableOpacity, Alert, FlatList, Modal } from "react-native";
+import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../../services/api";
@@ -19,6 +9,8 @@ import ReanimatedSwipeable, {
 } from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Option } from "../../../components/Option";
 import { Toast } from "../../../components/Toast";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import * as S from "./styles";
 
 interface Post {
   _id: string;
@@ -29,8 +21,8 @@ interface Post {
 }
 
 export function HomeScreen() {
-  const [userData, setUserData] = useState<{ role?: string }>({});
   const auth = getAuth();
+  const [userData, setUserData] = useState<{ role?: string }>({});
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,6 +33,7 @@ export function HomeScreen() {
   });
   const [editPostId, setEditPostId] = useState<string | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [search, setSearch] = useState<string>("");
 
   const currentUser = auth.currentUser;
   const openSwipeableRef = useRef<SwipeableMethods | null>(null);
@@ -65,7 +58,7 @@ export function HomeScreen() {
       setPosts(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert("Erro", "Não foi possível carregar os posts");
+      Toast.error("Não foi possível carregar os posts");
     }
   }
 
@@ -81,7 +74,7 @@ export function HomeScreen() {
       setNewPost({ title: "", content: "", author: "" });
     } catch (error) {
       console.error(error);
-      Alert.alert("Erro", "Não foi possível criar o post");
+      Toast.error("Não foi possível criar o post");
     }
   }
 
@@ -89,7 +82,6 @@ export function HomeScreen() {
     try {
       await api.delete(`/posts/${postId}`);
       setPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
-      console.log("clicou", postId);
       Toast.success("Post deletado com sucesso.");
     } catch (error) {
       console.error(error);
@@ -111,28 +103,38 @@ export function HomeScreen() {
           post._id === editPostId ? response.data : post
         )
       );
-      console.log("Editando post com ID:", editPostId);
       setIsEditModalVisible(false);
       setNewPost({ title: "", content: "", author: "" });
       setEditPostId(null);
     } catch (error) {
       console.error(error);
-      console.log("erro:", error);
       Toast.error("Não foi possível editar o post");
+    }
+  }
+
+  async function searchPosts(term: string) {
+    if (!term || term.trim() === "") {
+      loadPosts();
+      return;
+    }
+
+    try {
+      const response = await api.get(
+        `/posts/search?query=${encodeURIComponent(term)}`
+      );
+      setPosts(response.data);
+    } catch (error) {
+      console.error(
+        "Erro ao buscar posts:",
+        error.response ? error.response.data : error.message
+      );
+      Toast.error("Não foi possível buscar os posts");
     }
   }
 
   useEffect(() => {
     loadPosts();
   }, []);
-
-  async function handleSignOut() {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error(error);
-    }
-  }
 
   function onSwipeableWillOpen(
     direction: "left" | "right",
@@ -149,54 +151,25 @@ export function HomeScreen() {
     openSwipeableRef.current = current;
   }
 
-  async function handleDeleteAccount() {
-    if (!currentUser) return;
-
-    Alert.alert(
-      "Deletar Conta",
-      "Tem certeza que deseja deletar sua conta? Esta ação não pode ser desfeita.",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Sim, deletar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const db = getFirestore();
-              await deleteDoc(doc(db, "users", currentUser.uid));
-              await deleteUser(currentUser);
-              console.log("currentUser: ", currentUser);
-              Alert.alert("Sucesso", "Sua conta foi deletada com sucesso.");
-            } catch (error) {
-              console.error(error);
-              Alert.alert(
-                "Erro",
-                "Erro ao deletar conta. Tente fazer login novamente."
-              );
-            }
-          },
-        },
-      ]
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Você está na Home como {currentUser.email}
-      </Text>
+    <S.Container>
+      <S.Title>
+        Bem-vindo(a)
+      </S.Title>
 
-      {userData.role === "Professor" && (
-        <View style={styles.professorContent}>
-          <Text>Conteúdo exclusivo para professores</Text>
-        </View>
-      )}
+      <S.Search>
+        <S.SearchInput
+          value={search}
+          onChangeText={(text) => {
+            setSearch(text);
+            searchPosts(text);
+          }}
+          placeholder="Pesquise seu post"
+        />
+      </S.Search>
 
-      <View style={styles.postsContainer}>
-        <Text style={styles.postsTitle}>Posts Recentes</Text>
+      <S.PostsContainer>
+        <S.PostsTitle>Posts Recentes</S.PostsTitle>
         <FlatList
           data={posts}
           keyExtractor={(item) => item._id}
@@ -206,13 +179,13 @@ export function HomeScreen() {
             return userData.role === "Professor" ? (
               <ReanimatedSwipeable
                 ref={(swipeable) => (current = swipeable)}
-                containerStyle={styles.swipeableContainer}
+                containerStyle={{ borderRadius: 5 }}
                 overshootFriction={150}
                 onSwipeableWillOpen={(direction) =>
                   onSwipeableWillOpen(direction, current)
                 }
                 renderRightActions={() => (
-                  <View style={styles.rightActions}>
+                  <S.RightActions>
                     <Option
                       icon="edit"
                       backgroundColor="#00B960"
@@ -231,7 +204,7 @@ export function HomeScreen() {
                       backgroundColor="#E83D55"
                       onPress={() => deletePost(item._id)}
                     />
-                  </View>
+                  </S.RightActions>
                 )}
               >
                 <Post
@@ -255,23 +228,28 @@ export function HomeScreen() {
           refreshing={isLoading}
           onRefresh={loadPosts}
           contentContainerStyle={{ paddingHorizontal: 20 }}
-          ListEmptyComponent={() => <Text>Nenhum post encontrado</Text>}
+          ListEmptyComponent={() => (
+            <S.EmptyPost>Nenhum post encontrado</S.EmptyPost>
+          )}
         />
-      </View>
+      </S.PostsContainer>
 
       {userData.role === "Professor" && (
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
-          <Text style={{ color: "#FFFFFF", fontSize: 17, marginBottom: 20 }}>
+        <S.ButtonNewPost onPress={() => {
+          setNewPost({ title: "", content: "", author: "" })
+          setModalVisible(true)
+          }}>
+          <S.ButtonTextCreatePost
+            style={{
+              textShadowColor: "rgba(255, 255, 255, 0.5)",
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
+            }}
+          >
             Criar um post +
-          </Text>
-        </TouchableOpacity>
+          </S.ButtonTextCreatePost>
+        </S.ButtonNewPost>
       )}
-
-      <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-        <Text style={styles.buttonText}>Sair</Text>
-      </TouchableOpacity>
-
-      <Button title="Deletar conta" onPress={handleDeleteAccount} color="red" />
 
       <Modal
         animationType="slide"
@@ -279,36 +257,41 @@ export function HomeScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Criar um Post</Text>
-            <TextInput
-              style={styles.input}
+        <S.ModalContainer>
+          <S.ModalContent>
+            <S.ContainerHeaderModal>
+              <S.ModalTitle>Criar um Post</S.ModalTitle>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={{ position: "absolute", left: 180 }}
+              >
+                <AntDesign name="close" size={20} color="black" />
+              </TouchableOpacity>
+            </S.ContainerHeaderModal>
+            <S.Input
               placeholder="Título do Post"
               value={newPost.title}
               onChangeText={(text) => setNewPost({ ...newPost, title: text })}
             />
-            <TextInput
-              style={styles.input}
+            <S.Input
               placeholder="Conteúdo do Post"
               value={newPost.content}
               onChangeText={(text) => setNewPost({ ...newPost, content: text })}
               multiline
             />
-            <TextInput
-              style={styles.input}
+            <S.Input
               placeholder="Nome do Autor"
               value={newPost.author}
               onChangeText={(text) => setNewPost({ ...newPost, author: text })}
             />
-            <TouchableOpacity style={styles.buttonModal} onPress={createPost}>
-              <Text style={styles.buttonText}>Criar Post</Text>
-            </TouchableOpacity>
+            <S.ButtonModal onPress={createPost}>
+              <S.ButtonText>Criar Post</S.ButtonText>
+            </S.ButtonModal>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={styles.buttonText}>Cancelar</Text>
+              <S.ButtonText>Cancelar</S.ButtonText>
             </TouchableOpacity>
-          </View>
-        </View>
+          </S.ModalContent>
+        </S.ModalContainer>
       </Modal>
 
       <Modal
@@ -317,160 +300,42 @@ export function HomeScreen() {
         visible={isEditModalVisible}
         onRequestClose={() => setIsEditModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Editar Post</Text>
-            <TextInput
-              style={styles.input}
+        <S.ModalContainer>
+          <S.ModalContent>
+            <S.ContainerHeaderModal>
+              <S.ModalTitle>Editar Post</S.ModalTitle>
+              <TouchableOpacity
+                onPress={() => setIsEditModalVisible(false)}
+                style={{ position: "absolute", left: 160 }}
+              >
+                <AntDesign name="close" size={20} color="black" />
+              </TouchableOpacity>
+            </S.ContainerHeaderModal>
+            <S.Input
               placeholder="Título do Post"
               value={newPost.title}
               onChangeText={(text) => setNewPost({ ...newPost, title: text })}
             />
-            <TextInput
-              style={styles.input}
+            <S.Input
               placeholder="Conteúdo do Post"
               value={newPost.content}
               onChangeText={(text) => setNewPost({ ...newPost, content: text })}
               multiline
             />
-            <TextInput
-              style={styles.input}
+            <S.Input
               placeholder="Nome do Autor"
               value={newPost.author}
               onChangeText={(text) => setNewPost({ ...newPost, author: text })}
             />
-            <TouchableOpacity style={styles.buttonModal} onPress={editPost}>
-              <Text style={styles.buttonText}>Salvar Alterações</Text>
-            </TouchableOpacity>
+            <S.ButtonModal onPress={editPost}>
+              <S.ButtonText>Salvar Alterações</S.ButtonText>
+            </S.ButtonModal>
             <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-              <Text style={styles.buttonText}>Cancelar</Text>
+              <S.ButtonText>Cancelar</S.ButtonText>
             </TouchableOpacity>
-          </View>
-        </View>
+          </S.ModalContent>
+        </S.ModalContainer>
       </Modal>
-    </View>
+    </S.Container>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#0d0f1f",
-  },
-  title: {
-    fontSize: 20,
-    marginBottom: 20,
-    color: "#FFFFFF",
-  },
-  button: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#FF3B30",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonModal: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#007aff",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  professorContent: {
-    padding: 20,
-    marginVertical: 10,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-  },
-  postsContainer: {
-    width: 390,
-    marginBottom: 20,
-  },
-  postsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#FFFFFF",
-  },
-  postCard: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  postTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  postContent: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
-  },
-  postFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  postAuthor: {
-    fontSize: 12,
-    color: "#888",
-  },
-  postDate: {
-    fontSize: 12,
-    color: "#888",
-  },
-  swipeableContainer: {
-    borderRadius: 5,
-  },
-  rightActions: {
-    flexDirection: "row",
-  },
-  content: {
-    gap: 14,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    width: "80%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-  },
-});

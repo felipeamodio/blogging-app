@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Alert } from "react-native";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useRoute, RouteProp } from "@react-navigation/native";
 import * as S from "./styles";
 import { Toast } from "../../../../components/Toast";
 import {getFirestore, doc, setDoc} from "firebase/firestore"
@@ -15,11 +14,8 @@ export function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registerNumber, setRegisterNumber] = useState("");
-  const { goBack } = useNavigation();
   const route = useRoute<RouteProp<{ RegisterScreen: RegisterScreenParams }>>();
   const { role } = route.params;
-
-  // https://gist.github.com/Albejr/a38cdeac247ef177986c99629680afb4
 
   async function handleSignUp() {
     if (!email || !password || !confirmPassword || (role === "Professor" && !registerNumber)) {
@@ -45,9 +41,7 @@ export function RegisterScreen() {
       })
 
       Toast.success("Sua conta foi criada com sucesso!");
-      console.log("auth: ", auth);
-      console.log("email: ", email);
-      console.log("password: ", password);
+
       if (role === "Professor") {
         console.log("Matrícula: ", registerNumber);
       }

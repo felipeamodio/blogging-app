@@ -5,9 +5,10 @@ import { SignInScreen } from "../pages/auth/SignInScreen";
 import { useEffect, useState } from "react";
 import { User, getAuth, onAuthStateChanged } from "firebase/auth";
 import { RegisterScreen } from "../pages/auth/SignInScreen/RegisterScreen";
+import { TabRoute } from "./Tab";
 
 export type StackParamList = {
-    HomeScreen: undefined;
+    TabRoute: undefined;
     SignInScreen: undefined;
     RegisterScreen: { role: "Professor" | "Aluno" };
 }
@@ -21,13 +22,11 @@ export function StackRoute() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Monitora o estado de autenticação
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setAuthenticated(user);
       setLoading(false);
     });
 
-    // Cleanup da inscrição quando o componente for desmontado
     return unsubscribe;
   }, []);
 
@@ -49,7 +48,7 @@ export function StackRoute() {
     >
       {authenticated ? (
         <Stack.Group>
-          <Stack.Screen name="HomeScreen" component={HomeScreen} />
+          <Stack.Screen name="TabRoute" component={TabRoute} />
         </Stack.Group>
       ) : (
         <Stack.Group>
